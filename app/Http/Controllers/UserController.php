@@ -6,37 +6,43 @@ use App\Http\Controllers\Controller;
 use App\Imports\UsersImport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\User;
 
 class UserController extends Controller
 {
     public function import(Request $request)
     {
-        // Increase execution time limit
         set_time_limit(300); // 5 minutes
-        ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '1024M');
 
         $request->validate([
-            'file' => 'required|file|mimes:csv,xlsx,xls|max:102400' // Max 10MB
+            'file' => 'required|file|mimes:csv,xlsx,xls|max:102400'
         ]);
 
-        try {
-            $import = new UsersImport();
-            Excel::import($import, $request->file('file'));
+        $import = new UsersImport();
+        Excel::import($import, $request->file('file'));
 
-            return redirect()->back()->with('success', 'Users imported successfully!');
-
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            $errors = [];
-
-            foreach ($failures as $failure) {
-                $errors[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
-            }
-
-            return redirect()->back()->with('error', 'Import failed: ' . implode(' | ', array_slice($errors, 0, 5)));
-
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Import failed: ' . $e->getMessage());
+        if (!empty($import->errorsBag)) {
+            return back()->with([
+                'status' => 'Import completed with errors. Valid rows saved.',
+                'import_errors' => $import->errorsBag
+            ]);
         }
+
+        return back()->with('status', 'Users imported successfully!');
+    }
+
+    public function index(Request $request)
+    {
+        $sort = $request->query('sort', 'created_at');
+        $dir = $request->query('dir', 'desc');
+
+        $allowed = ['name', 'email', 'contact_number', 'birthday', 'created_at'];
+        if (!in_array($sort, $allowed))
+            $sort = 'created_at';
+        $dir = $dir === 'asc' ? 'asc' : 'desc';
+
+        $users = User::orderBy($sort, $dir)->paginate(15)->withQueryString();
+        return view('import.import', compact('users', 'sort', 'dir'));
     }
 }
