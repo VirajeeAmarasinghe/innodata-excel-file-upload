@@ -78,11 +78,17 @@
 
 <body>
     <h2>Upload Excel</h2>
-    <form action="{{ route('import.import') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('import.import') }}" method="POST" enctype="multipart/form-data" onsubmit="showLoader()">
         @csrf
         <input type="file" name="file" required>
         <button type="submit">Upload</button>
     </form>
+
+    <div id="loader" style="display:none; margin-top:10px;">
+        <strong>Uploading & Processing... Please wait</strong>
+        <br>
+        <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading..." width="50">
+    </div>
 
     @if(session('status'))
         <div class="status {{ session('import_errors') ? 'warn' : 'ok' }}">{{ session('status') }}</div>
@@ -128,5 +134,10 @@
     </table>
     {{ $users->links() }}
 </body>
+<script>
+    function showLoader() {
+        document.getElementById('loader').style.display = 'block';
+    }
+</script>
 
 </html>

@@ -12,7 +12,7 @@ class UserController extends Controller
 {
     public function import(Request $request)
     {
-        set_time_limit(300); // 5 minutes
+        set_time_limit(900);
         ini_set('memory_limit', '1024M');
 
         $request->validate([
